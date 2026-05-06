@@ -19,6 +19,7 @@ import androidx.paging.compose.itemContentType
 import androidx.paging.compose.itemKey
 import coil.compose.AsyncImage
 import com.example.comicapp.domain.model.Character
+import com.example.comicapp.presentation.components.NetworkErrorDialog
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -30,6 +31,16 @@ fun CharacterListScreen(
     val searchQuery by viewModel.searchQuery.collectAsState()
     val selectedStatus by viewModel.statusFilter.collectAsState()
     val selectedSpecies by viewModel.speciesFilter.collectAsState()
+
+    var showErrorDialog by remember { mutableStateOf(false) }
+    var errorMessage by remember { mutableStateOf("") }
+
+    LaunchedEffect(characters.loadState.refresh) {
+        if (characters.loadState.refresh is LoadState.Error) {
+            errorMessage = (characters.loadState.refresh as LoadState.Error).error.localizedMessage ?: "Unknown error"
+            showErrorDialog = true
+        }
+    }
 
     val statuses = listOf("Alive", "Dead", "unknown")
     val species = listOf("Human", "Alien", "Robot")
@@ -135,16 +146,14 @@ fun CharacterListScreen(
                     CircularProgressIndicator()
                 }
             }
+        }
 
-            if (characters.loadState.refresh is LoadState.Error) {
-                val e = characters.loadState.refresh as LoadState.Error
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    ErrorRetry(
-                        message = e.error.localizedMessage ?: "Error loading characters",
-                        onRetry = { characters.retry() }
-                    )
-                }
-            }
+        if (showErrorDialog) {
+            NetworkErrorDialog(
+                onDismiss = { showErrorDialog = false },
+                onRetry = { characters.retry() },
+                errorMessage = errorMessage
+            )
         }
     }
 }

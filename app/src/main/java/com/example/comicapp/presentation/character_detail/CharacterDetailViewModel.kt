@@ -10,6 +10,7 @@ import com.example.comicapp.domain.use_case.GetEpisodesUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -17,21 +18,29 @@ import javax.inject.Inject
 class CharacterDetailViewModel @Inject constructor(
     private val getCharacterUseCase: GetCharacterUseCase,
     private val getEpisodesUseCase: GetEpisodesUseCase,
-    savedStateHandle: SavedStateHandle
+    private val savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(CharacterDetailState())
     val state = _state.asStateFlow()
 
     init {
+        loadCharacter()
+    }
+
+    fun loadCharacter() {
         savedStateHandle.get<Int>("characterId")?.let { characterId ->
             getCharacterDetail(characterId)
         }
     }
 
+    fun dismissError() {
+        _state.update { it.copy(error = null) }
+    }
+
     private fun getCharacterDetail(id: Int) {
         viewModelScope.launch {
-            _state.value = _state.value.copy(isLoading = true)
+            _state.value = _state.value.copy(isLoading = true, error = null)
             val character = getCharacterUseCase(id)
             if (character != null) {
                 _state.value = _state.value.copy(character = character)
